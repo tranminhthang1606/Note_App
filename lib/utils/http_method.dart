@@ -7,12 +7,20 @@ final url = Uri.https(
 );
 
 class HttpMethod {
-  static void post(data) {
-    http.post(
+  static void post(data) async {
+    final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
       body: json.encode(data),
     );
-    print('done');
+    print(response);
+  }
+
+  static void get() async {
+    final response = await http.get(
+      url,
+      headers: {'Content-Type': 'application/json'},
+    );
+    print(response);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:note_app_flutter/models/category.dart';
 import 'package:note_app_flutter/models/note.dart';
 import 'package:note_app_flutter/screens/note_detail_screen.dart';
+import 'package:note_app_flutter/utils/http_method.dart';
 import 'package:note_app_flutter/widgets/category_filter_dialog.dart';
 import 'package:note_app_flutter/widgets/note_card.dart';
 import 'package:note_app_flutter/widgets/sort_options_dialog.dart';
@@ -26,6 +27,13 @@ class _NoteListScreenState extends State<NoteListScreen> {
   String? _selectedCategoryId;
   String? _selectedTag;
   bool _showTrash = false;
+
+@override
+  void initState(){
+    super.initState();
+    HttpMethod.get();
+    print('hehe');
+  }
 
   // Dữ liệu giả định để hiển thị UI
   final List<Note> _mockNotes = [
@@ -186,6 +194,8 @@ class _NoteListScreenState extends State<NoteListScreen> {
       _searchQuery = '';
     });
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
