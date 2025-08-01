@@ -5,7 +5,6 @@ import 'package:note_app_flutter/utils/http_method.dart';
 import 'package:note_app_flutter/widgets/confirm_dialog.dart';
 import 'package:note_app_flutter/widgets/tag_input_field.dart';
 
-
 class NoteDetailScreen extends StatefulWidget {
   final Note? note;
 
@@ -18,17 +17,11 @@ class NoteDetailScreen extends StatefulWidget {
 class _NoteDetailScreenState extends State<NoteDetailScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  String? _selectedCategoryName; // Thay đổi từ categoryId sang categoryName cho UI
+  String? _selectedCategoryName;
   List<String> _tags = [];
   bool _isPinned = false;
-
-  // Dữ liệu giả định cho danh mục
-  final List<Category> _mockCategories = [
-    Category(id: 'cat1', name: 'Cá nhân'),
-    Category(id: 'cat2', name: 'Công việc'),
-    Category(id: 'cat3', name: 'Nấu ăn'),
-    Category(id: 'cat4', name: 'Khác'),
-  ];
+  List<Category> _categories = [];
+  bool _isLoadingCategories = true;
 
   @override
   void initState() {
@@ -40,6 +33,25 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
       _tags = List.from(widget.note!.tags);
       _isPinned = widget.note!.isPinned;
     }
+    _fetchCategories(); 
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() {
+      _isLoadingCategories = true;
+    });
+    try {
+      final fetchedCategories = await HttpMethod.getCategories();
+      setState(() {
+        _categories = fetchedCategories;
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      print('Lỗi khi lấy danh mục: $e');
+      setState(() {
+        _isLoadingCategories = false;
+      });
+    }
   }
 
   Future<void> _addCategoryDialog() async {
@@ -47,7 +59,7 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Thêm danh mục mới (UI)'),
+        title: const Text('Thêm danh mục mới'),
         content: TextField(
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Tên danh mục'),
@@ -61,18 +73,26 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
             child: const Text('Hủy'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (newCategoryName.isNotEmpty) {
-                // Không thêm thật sự, chỉ hiển thị thông báo
+                
+                await HttpMethod.createCategory(newCategoryName);
+                
+                
+                await _fetchCategories();
+                setState(() {
+                  _selectedCategoryName = newCategoryName;
+                });
+
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                      content: Text('Đã thêm danh mục "$newCategoryName" vào UI.'),
-                      duration: const Duration(seconds: 2)),
+                    content: Text('Đã thêm danh mục "$newCategoryName".'),
+                    duration: const Duration(seconds: 2),
+                  ),
                 );
-                setState(() {
-                  _selectedCategoryName = newCategoryName; // Chọn danh mục mới tạo trong UI
-                });
-                Navigator.pop(context);
+                if (mounted) {
+                  Navigator.pop(context);
+                }
               }
             },
             child: const Text('Thêm'),
@@ -93,129 +113,157 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.note == null ? 'Ghi chú mới (UI)' : 'Chỉnh sửa ghi chú (UI)'),
+        title: Text(
+          widget.note == null ? 'Ghi chú mới' : 'Chỉnh sửa ghi chú',
+        ),
         actions: [
-          IconButton(
-            icon: Icon(_isPinned ? Icons.push_pin : Icons.push_pin_outlined),
-            onPressed: () {
-              setState(() {
-                _isPinned = !_isPinned;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text(_isPinned ? 'Đã ghim ghi chú (UI).' : 'Đã bỏ ghim ghi chú (UI).'),
-                    duration: const Duration(seconds: 1)),
-              );
-            },
-          ),
-          if (widget.note != null && !widget.note!.isDeleted)
+          if (widget.note != null)
+            IconButton(
+              icon: Icon(_isPinned ? Icons.push_pin : Icons.push_pin_outlined),
+              onPressed: () async {
+                setState(() {
+                  _isPinned = !_isPinned;
+                });
+                final updatedNote = widget.note!.copyWith(
+                  isPinned: _isPinned,
+                  modifiedAt: DateTime.now(),
+                );
+                await HttpMethod.patch(widget.note!.id, updatedNote.toJson());
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _isPinned ? 'Đã ghim ghi chú.' : 'Đã bỏ ghim ghi chú.',
+                    ),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+            ),
+          if (widget.note != null)
             IconButton(
               icon: const Icon(Icons.delete),
               onPressed: () async {
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => ConfirmDialog(
-                    title: 'Xóa ghi chú (UI)',
-                    content: 'Bạn có chắc chắn muốn chuyển ghi chú này vào thùng rác trong UI không?',
+                    title: 'Xóa ghi chú',
+                    content: 'Bạn có chắc chắn muốn xóa vĩnh viễn ghi chú này không?',
                   ),
                 );
                 if (confirmed == true) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Đã chuyển ghi chú vào thùng rác trong UI.'),
-                        duration: Duration(seconds: 2)),
-                  );
-                  if (mounted) {
-                    Navigator.pop(context); // Quay lại
+                  if (widget.note != null && widget.note!.id.isNotEmpty) {
+                    await HttpMethod.delete(widget.note!.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Ghi chú đã được xóa vĩnh viễn!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                    if (mounted) {
+                      Navigator.pop(context, true);
+                    }
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Không thể xóa ghi chú không có ID.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
                   }
                 }
               },
             ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                hintText: 'Tiêu đề',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              maxLines: null,
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: TextField(
-                controller: _contentController,
-                decoration: const InputDecoration(
-                  hintText: 'Nội dung ghi chú...',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-                maxLines: null,
-                keyboardType: TextInputType.multiline,
-                expands: true,
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Chọn danh mục
-            DropdownButtonFormField<String>(
-              value: _selectedCategoryName,
-              decoration: InputDecoration(
-                labelText: 'Danh mục',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              ),
-              hint: const Text('Chọn danh mục'),
-              items: [
-                ..._mockCategories.map((category) => DropdownMenuItem(
-                      value: category.name,
-                      child: Text(category.name),
-                    )),
-                const DropdownMenuItem(
-                  value: 'new_category',
-                  child: Row(
-                    children: [
-                      Icon(Icons.add),
-                      SizedBox(width: 8),
-                      Text('Thêm danh mục mới'),
-                    ],
+      body: _isLoadingCategories
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  TextField(
+                    controller: _titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Tiêu đề',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    maxLines: null,
                   ),
-                ),
-              ],
-              onChanged: (value) {
-                if (value == 'new_category') {
-                  _addCategoryDialog();
-                } else {
-                  setState(() {
-                    _selectedCategoryName = value;
-                  });
-                }
-              },
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _contentController,
+                      decoration: const InputDecoration(
+                        hintText: 'Nội dung ghi chú...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      maxLines: null,
+                      keyboardType: TextInputType.multiline,
+                      expands: true,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: _selectedCategoryName,
+                    decoration: InputDecoration(
+                      labelText: 'Danh mục',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                    ),
+                    hint: const Text('Chọn danh mục'),
+                    items: [
+                      ..._categories.map(
+                        (category) => DropdownMenuItem(
+                          value: category.name,
+                          child: Text(category.name),
+                        ),
+                      ),
+                      const DropdownMenuItem(
+                        value: 'new_category',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add),
+                            SizedBox(width: 8),
+                            Text('Thêm danh mục mới'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == 'new_category') {
+                        _addCategoryDialog();
+                      } else {
+                        setState(() {
+                          _selectedCategoryName = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TagInputField(
+                    initialTags: _tags,
+                    onTagsChanged: (newTags) {
+                      setState(() {
+                        _tags = newTags;
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            // Thêm Tags
-            TagInputField(
-              initialTags: _tags,
-              onTagsChanged: (newTags) {
-                setState(() {
-                  _tags = newTags;
-                });
-              },
-            ),
-          ],
-        ),
-      ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
-          onPressed: () {
+          onPressed: () async {
+            
             final Map<String, dynamic> data = Note(
               id: widget.note?.id ?? '',
               title: _titleController.text,
@@ -225,15 +273,29 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               isPinned: _isPinned,
               createdAt: widget.note?.createdAt ?? DateTime.now(),
               modifiedAt: DateTime.now(),
+              isDeleted: false,
             ).toJson();
-            
-            HttpMethod.post(data);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Ghi chú đã được lưu (chỉ UI).'),
-                  duration: Duration(seconds: 2)),
-            );
-            Navigator.pop(context);
+
+            if (widget.note == null) {
+              await HttpMethod.post(data);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ghi chú đã được thêm mới!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              await HttpMethod.patch(widget.note!.id, data);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Ghi chú đã được cập nhật!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+            if (mounted) {
+              Navigator.pop(context, true); 
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blueGrey,
@@ -243,9 +305,9 @@ class _NoteDetailScreenState extends State<NoteDetailScreen> {
               borderRadius: BorderRadius.circular(8),
             ),
           ),
-          child: const Text(
-            'Lưu và Thoát (UI)',
-            style: TextStyle(fontSize: 18),
+          child: Text(
+            widget.note == null ? 'Lưu ghi chú mới' : 'Cập nhật ghi chú',
+            style: const TextStyle(fontSize: 18),
           ),
         ),
       ),

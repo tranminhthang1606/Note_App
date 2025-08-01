@@ -7,7 +7,7 @@ class NoteCard extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onTogglePin;
   final VoidCallback? onRestore;
-  // categoryName đã có sẵn trong Note model UI, không cần truyền riêng
+  
 
   const NoteCard({
     super.key,

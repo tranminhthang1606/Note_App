@@ -4,7 +4,7 @@ import 'package:note_app_flutter/models/category.dart';
 class CategoryFilterDialog extends StatefulWidget {
   final List<Category> categories;
   final List<String> allTags;
-  final String? selectedCategoryId; // Giữ nguyên để khớp với logic cũ, nhưng sẽ dùng name cho UI
+  final String? selectedCategoryId; 
   final String? selectedTag;
 
   const CategoryFilterDialog({
@@ -33,7 +33,7 @@ class _CategoryFilterDialogState extends State<CategoryFilterDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Lọc ghi chú (UI)'),
+      title: const Text('Lọc ghi chú '),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -52,7 +52,7 @@ class _CategoryFilterDialogState extends State<CategoryFilterDialog> {
             ),
             ...widget.categories.map((category) => RadioListTile<String?>(
                   title: Text(category.name),
-                  value: category.id, // Vẫn dùng ID để truyền, nhưng sẽ dùng name để hiển thị
+                  value: category.id, 
                   groupValue: _tempSelectedCategoryId,
                   onChanged: (value) {
                     setState(() {

@@ -12,7 +12,10 @@ class Layout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(backgroundColor: Colors.black, title: Text('hehe')),
+      // appBar: AppBar(
+      //   backgroundColor: Color.fromARGB(255, 34, 28, 39),
+      //   title: Text('hehe'),
+      // ),
       body: Center(
         child: ValueListenableBuilder(
           valueListenable: currentScreenNotifier,
@@ -22,14 +25,14 @@ class Layout extends StatelessWidget {
         ),
       ),
 
-      bottomNavigationBar: NavigationBar(
-        destinations: [
-          NavigationDestination(icon: Icon(Icons.home), label: 'Nhà'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Người'),
-        ],
-        onDestinationSelected: (value) => {},
-        selectedIndex: 0,
-      ),
+      // bottomNavigationBar: NavigationBar(
+      //   destinations: [
+      //     NavigationDestination(icon: Icon(Icons.home), label: 'Nhà'),
+      //     NavigationDestination(icon: Icon(Icons.person), label: 'Người'),
+      //   ],
+      //   onDestinationSelected: (value) => {},
+      //   selectedIndex: 0,
+      // ),
     );
   }
 }

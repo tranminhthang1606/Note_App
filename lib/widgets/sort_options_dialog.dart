@@ -22,7 +22,7 @@ class _SortOptionsDialogState extends State<SortOptionsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Sắp xếp ghi chú theo (UI)'),
+      title: const Text('Sắp xếp ghi chú theo '),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

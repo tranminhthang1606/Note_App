@@ -26,13 +26,37 @@ class Note {
       'id': id,
       'title': title,
       'content': content,
-      'createdAt': createdAt.toIso8601String(), // Chuyển đổi DateTime sang chuỗi ISO 8601
+      'createdAt': createdAt.toIso8601String(), 
       'modifiedAt': modifiedAt.toIso8601String(),
       'isPinned': isPinned,
       'categoryName': categoryName,
       'tags': tags,
       'isDeleted': isDeleted,
     };
+  }
+
+  Note copyWith({
+    String? id,
+    String? title,
+    String? content,
+    String? categoryName,
+    List<String>? tags,
+    bool? isPinned,
+    DateTime? createdAt,
+    DateTime? modifiedAt,
+    bool? isDeleted,
+  }) {
+    return Note(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      content: content ?? this.content,
+      categoryName: categoryName ?? this.categoryName,
+      tags: tags ?? this.tags,
+      isPinned: isPinned ?? this.isPinned,
+      createdAt: createdAt ?? this.createdAt,
+      modifiedAt: modifiedAt ?? this.modifiedAt,
+      isDeleted: isDeleted ?? this.isDeleted,
+    );
   }
 }
 
